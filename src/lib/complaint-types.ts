@@ -14,7 +14,7 @@ export interface ComplaintInput {
   category: Category;
   location: string;
   description: string;
-  hasPhoto?: boolean;
+  hasPhoto?: boolean | undefined;
 }
 
 export interface AiResult {
@@ -34,7 +34,7 @@ export interface Complaint extends ComplaintInput {
   summary: string;
   priority: Priority;
   text: string;
-  photo?: string;
+  photo?: string | undefined;
   aiMode: "ai" | "demo";
 }
 
