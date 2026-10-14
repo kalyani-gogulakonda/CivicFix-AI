@@ -87,7 +87,7 @@ function Index() {
                       <Card className="p-4 sm:p-5">
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="font-semibold">{categoryLabel(c.category)}</p>
+                            <p className="font-semibold">{categoryLabel(c.category)} {c.id.startsWith("demo-") && <Badge tone="amber">Fictional sample</Badge>}</p>
                             <p className="truncate text-sm text-muted-foreground">{c.location}</p>
                           </div>
                           <div className="flex items-center gap-2">
@@ -95,14 +95,17 @@ function Index() {
                             <span className="text-xs text-muted-foreground">{new Date(c.createdAt).toLocaleDateString()}</span>
                           </div>
                         </div>
-                        <div className="mt-3 flex gap-1">
+                        <div className="mt-3 flex flex-wrap gap-1">
                           <Btn variant="ghost" className="px-2 py-1 text-xs" onClick={() => setOpen(open === c.id ? null : c.id)}>{open === c.id ? "Hide" : "View"}</Btn>
-                          {c.status === "draft" && <Btn variant="ghost" className="px-2 py-1 text-xs" onClick={() => update(list.map((x) => (x.id === c.id ? { ...x, status: "ready" } : x)))}>Mark Ready</Btn>}
+                          {c.status === "draft" && <Btn variant="ghost" className="px-2 py-1 text-xs" onClick={() => confirm("Confirm you have reviewed this complaint and it is accurate, then mark it Ready to Submit?") && update(list.map((x) => (x.id === c.id ? { ...x, status: "ready" } : x)))}>Mark Ready</Btn>}
+                          {c.status === "ready" && <Btn variant="ghost" className="px-2 py-1 text-xs" onClick={() => update(list.map((x) => (x.id === c.id ? { ...x, status: "draft" } : x)))}>Back to Draft</Btn>}
                           <Btn variant="danger" className="px-2 py-1 text-xs" onClick={() => confirm("Delete this complaint?") && update(list.filter((x) => x.id !== c.id))}>Delete</Btn>
                         </div>
                         {open === c.id && (
                           <div className="mt-3 space-y-3 border-t border-border pt-3">
                             {c.photo && <img src={c.photo} alt="Issue" className="h-32 rounded-lg object-cover" />}
+                            <p className="text-sm"><span className="font-semibold">Summary:</span> {c.summary}</p>
+                            <p className="text-sm"><span className="font-semibold">Suggested priority (for human review):</span> {c.priority} · {c.aiMode === "ai" ? "AI-generated" : "Template (demo mode, not AI)"}</p>
                             <pre className="whitespace-pre-wrap rounded-lg bg-muted p-3 font-sans text-sm">{c.text}</pre>
                             <Btn variant="outline" className="text-xs" onClick={() => navigator.clipboard.writeText(c.text).then(() => setToast("Copied to clipboard."))}>Copy text</Btn>
                           </div>
