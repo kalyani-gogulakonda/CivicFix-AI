@@ -12,7 +12,7 @@ export function ReportFlow({ onSave, onCancel }: { onSave: (c: Complaint) => voi
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState<string | undefined>();
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Partial<Record<"category" | "location" | "description" | "photo", string>>>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [ai, setAi] = useState<AiResult | null>(null);
@@ -20,7 +20,7 @@ export function ReportFlow({ onSave, onCancel }: { onSave: (c: Complaint) => voi
   const [reviewed, setReviewed] = useState(false);
 
   function validate() {
-    const e: Record<string, string> = {};
+    const e: Partial<Record<"category" | "location" | "description" | "photo", string>> = {};
     if (!category) e.category = "Please choose an issue type.";
     if (location.trim().length < 3) e.location = "Please enter a location or nearby landmark.";
     if (description.trim().length < 10) e.description = "Please describe the problem (at least 10 characters).";

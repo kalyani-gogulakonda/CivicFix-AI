@@ -23,7 +23,7 @@ and draft a polite, professional complaint letter in clear English (120-200 word
 Never claim the complaint has been submitted or resolved. Never ask for or include sensitive personal data (ID numbers, phone, email, full name); end with "[Your name]".`;
 
 export async function generateWithAi(input: ComplaintInput): Promise<AiResult> {
-  const apiKey = process.env.LOVABLE_API_KEY;
+  const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) return demoResult(input);
 
   const provider = createOpenAI({
