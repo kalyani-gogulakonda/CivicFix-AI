@@ -83,7 +83,7 @@ function Index() {
         ) : (
           <>
             <section className="rounded-2xl bg-navy p-6 text-navy-foreground sm:p-8">
-              <h1 className="text-3xl font-bold sm:text-4xl">Report it clearly. Get it fixed faster.</h1>
+              <h1 className="text-3xl font-bold sm:text-4xl">Turn a street problem into a clear complaint.</h1>
               <p className="mt-3 max-w-xl text-navy-foreground/80">
                 Describe a pothole, overflowing bin, broken streetlight or water leak. Our AI assistant turns it into a clear, professional complaint in English or Telugu that you can review and send to your municipality yourself.
               </p>
@@ -117,10 +117,10 @@ function Index() {
                         </div>
                         <div className="mt-3 flex flex-wrap gap-1">
                           <Btn variant="ghost" className="px-2 py-1 text-xs" onClick={() => setOpen(open === c.id ? null : c.id)}>{open === c.id ? "Hide" : "View"}</Btn>
-                          <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => { setOpen(c.id); setEditing({ id: c.id, text: c.text }); }}>Edit</Btn>
-                          {c.status === "draft" && <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => confirm("Confirm you have reviewed this complaint and it is accurate, then mark it Ready to Submit?") && setStatus(c, "ready")}>Mark Ready</Btn>}
-                          {c.status === "ready" && <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => setStatus(c, "draft")}>Back to Draft</Btn>}
-                          <Btn variant="danger" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => confirm("Delete this complaint?") && act(c.id, () => deleteComplaint(c), "Complaint deleted.")}>Delete</Btn>
+                          {!c.isSample && <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => { setOpen(c.id); setEditing({ id: c.id, text: c.text }); }}>Edit</Btn>}
+                          {!c.isSample && c.status === "draft" && <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => confirm("Confirm you have reviewed this complaint and it is accurate, then mark it Ready to Submit?") && setStatus(c, "ready")}>Mark Ready</Btn>}
+                          {!c.isSample && c.status === "ready" && <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => setStatus(c, "draft")}>Back to Draft</Btn>}
+                          {c.isSample ? <span className="self-center text-xs text-muted-foreground">Read-only example</span> : <Btn variant="danger" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => confirm("Delete this complaint?") && act(c.id, () => deleteComplaint(c), "Complaint deleted.")}>Delete</Btn>}
                         </div>
                         {open === c.id && (
                           <div className="mt-3 space-y-3 border-t border-border pt-3">

@@ -25,6 +25,9 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
   const [finalCategory, setFinalCategory] = useState<Category | null>(null);
   const [text, setText] = useState("");
   const [reviewed, setReviewed] = useState(false);
+  const [keepPhoto, setKeepPhoto] = useState(false);
+  const [limitHit, setLimitHit] = useState(false);
+  const photoMismatch = !!ai && !!photoFile && ai.photoRelevance !== "matches";
 
   function validate() {
     const e: FieldErr = {};
@@ -44,12 +47,14 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
       if (!r.ok) {
         setApiError(r.error);
         setErrSource("gen");
+        setLimitHit("limit" in r && !!r.limit);
         return;
       }
       setAi(r.result);
       setFinalCategory(r.result.categoryMatches ? (category as Category) : null);
       setText(r.result.complaintText);
       setReviewed(false);
+      setKeepPhoto(false);
     } catch {
       setErrSource("gen");
       setApiError("Could not reach the AI service. Please check your connection and retry.");
@@ -61,6 +66,7 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
   function onPhoto(f?: File) {
     setPhotoFile(undefined);
     setPhoto(undefined);
+    setKeepPhoto(false);
     if (!f) return;
     if (f.size > 4_000_000) return setErrors((x) => ({ ...x, photo: "Photo must be under 4 MB." }));
     if (!/^image\/(png|jpe?g|webp|gif)$/.test(f.type)) return setErrors((x) => ({ ...x, photo: "Please use a JPG, PNG, WebP or GIF image." }));
@@ -76,7 +82,7 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
     setSaving(true);
     setApiError(null);
     try {
-      const photoPath = photoFile ? await uploadPhoto(photoFile) : null;
+      const photoPath = photoFile && (!photoMismatch || keepPhoto) ? await uploadPhoto(photoFile) : null;
       await createComplaint({
         category: finalCategory,
         location: location.trim(),
@@ -142,8 +148,8 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
         {apiError && (
           <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
             <span>{apiError}</span>
-            <Btn variant="outline" className="px-3 py-1.5 text-xs" onClick={errSource === "gen" ? generate : () => setApiError(null)} disabled={loading}>
-              {errSource === "gen" ? "Retry" : "Dismiss"}
+            <Btn variant="outline" className="px-3 py-1.5 text-xs" onClick={errSource === "gen" && !limitHit ? generate : () => setApiError(null)} disabled={loading}>
+              {errSource === "gen" && !limitHit ? "Retry" : "Dismiss"}
             </Btn>
           </div>
         )}
@@ -161,6 +167,20 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
             <h2 className="text-xl font-bold">2. Review & edit</h2>
             <AiLabel demo={false} />
           </div>
+
+          {photoMismatch && (
+            <div role="alert" className="mt-5 rounded-lg border-2 border-destructive bg-destructive/10 p-4 text-destructive">
+              <p className="font-semibold">⚠ This photo doesn't appear to show the reported issue. Replace or remove it before saving.</p>
+              <p className="mt-1 text-sm">AI photo check: {ai.photoRelevance === "unclear" ? "unclear" : "does not match"}. The photo will not be attached and the draft does not refer to it.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Btn variant="outline" className="text-xs" onClick={() => { onPhoto(undefined); const el = document.getElementById("photo") as HTMLInputElement | null; if (el) el.value = ""; }}>Remove photo</Btn>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" className="h-4 w-4 accent-primary" checked={keepPhoto} onChange={(e) => setKeepPhoto(e.target.checked)} />
+                  Keep and attach this photo anyway
+                </label>
+              </div>
+            </div>
+          )}
 
           {!ai.categoryMatches && (
             <div className="mt-5 rounded-lg bg-warning p-4 text-warning-foreground">
@@ -200,6 +220,9 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
             <Btn onClick={() => save("ready")} disabled={saving || !finalCategory || !reviewed || text.trim().length < 20}>Save as Ready to Submit</Btn>
             <Btn variant="outline" onClick={() => save("draft")} disabled={saving || !finalCategory || text.trim().length < 20}>{saving ? "Saving…" : "Save as Draft"}</Btn>
           </div>
+          {apiError && errSource === "save" && (
+            <p role="alert" className="mt-3 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{apiError}</p>
+          )}
           <p className="mt-3 text-xs text-muted-foreground">Saving stores the complaint in this public demo. CivicFix AI does not send it to any authority.</p>
         </Card>
       )}
