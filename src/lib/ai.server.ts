@@ -30,6 +30,16 @@ Given the resident's chosen category, location, description and optionally a pho
 - complaintText: a polite, formal complaint letter (120-200 words) addressed to the Municipal Services Department, written ENTIRELY in the requested output language. Do not invent facts not given by the resident or visible in the photo.
 Never claim the complaint has been submitted or resolved. Never include personal data (names, phone numbers, ID numbers, home addresses); sign off with a placeholder for the resident's name ("[Your name]" in English, "[మీ పేరు]" in Telugu).`;
 
+const TELUGU_LETTER_INSTRUCTIONS = `For Telugu complaintText, override the generic English letter format and default Municipal Services Department addressee above. Write a standard, respectful Telugu అధికారిక లేఖ / ఫిర్యాదు పత్రం, not a literal translation of an English letter. Use readable plain text with blank lines between sections, no Markdown decoration, and this exact order:
+1. గ్రహీత: followed by the relevant officer's designation and department ONLY if explicitly supplied by the resident. Never infer an officer or department from the category or landmark. Otherwise write "గ్రహీత: [సంబంధిత అధికారికి]".
+2. స్థలం: [స్థలం] and తేదీ: [తేదీ], on separate lines. Use a letter's place or date only if explicitly provided for that purpose; an issue's location is not automatically the sender's place, and an issue's occurrence date is not the letter date. Do not invent either or insert the current date.
+3. విషయం: a concise Telugu subject identifying the reported issue.
+4. Respectful salutation: "మహోదయులకు,".
+5. Body: clearly describe the supplied issue, its exact reported location, duration and impact when known, then politely request inspection and appropriate action. Use natural, formal Telugu such as "తగిన చర్యలు తీసుకోవలసిందిగా వినమ్రంగా కోరుతున్నాను." Do not invent measurements, dates, previous complaints, risks or promises. Retain proper names and location identifiers accurately rather than inventing Telugu equivalents. All surrounding prose and section labels must be Telugu.
+6. Respectful closing: "ధన్యవాదములతో," followed by "భవదీయుడు/భవదీయురాలు," and "[మీ పేరు]". Never insert actual personal details.
+Keep the existing photo-evidence restrictions: if photoRelevance is not "matches", the letter must not mention a photo, an attachment or photographic evidence, even if the resident wants to keep the photo. Do not add an attachments section in that case.
+The other JSON fields still follow the original English-summary and analysis instructions. Return the full Telugu letter in complaintText within the existing JSON schema.`;
+
 export async function generateWithAi(input: ComplaintInput): Promise<AiResult> {
   const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) throw new Error("AI_NOT_CONFIGURED");
@@ -51,7 +61,7 @@ Photo attached: ${input.photo ? "yes (see image)" : "no"}`;
 
   const result = streamText({
     model: provider.responses(MODEL),
-    instructions: INSTRUCTIONS,
+    instructions: input.language === "te" ? `${INSTRUCTIONS}\n\n${TELUGU_LETTER_INSTRUCTIONS}` : INSTRUCTIONS,
     output: Output.object({ schema: aiSchema }),
     messages: [{ role: "user", content }],
     maxRetries: 0,
