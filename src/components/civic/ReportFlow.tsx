@@ -20,6 +20,7 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [errSource, setErrSource] = useState<"gen" | "save">("gen");
   const [ai, setAi] = useState<AiResult | null>(null);
   const [finalCategory, setFinalCategory] = useState<Category | null>(null);
   const [text, setText] = useState("");
@@ -42,6 +43,7 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
       const r = await gen({ data: { category: category as Category, location, description, language, photo } });
       if (!r.ok) {
         setApiError(r.error);
+        setErrSource("gen");
         return;
       }
       setAi(r.result);
@@ -49,6 +51,7 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
       setText(r.result.complaintText);
       setReviewed(false);
     } catch {
+      setErrSource("gen");
       setApiError("Could not reach the AI service. Please check your connection and retry.");
     } finally {
       setLoading(false);
@@ -90,6 +93,7 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
       });
       onSaved(status);
     } catch (e) {
+      setErrSource("save");
       setApiError(e instanceof Error ? e.message : "Could not save.");
     } finally {
       setSaving(false);
@@ -138,8 +142,8 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
         {apiError && (
           <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
             <span>{apiError}</span>
-            <Btn variant="outline" className="px-3 py-1.5 text-xs" onClick={ai && !loading ? () => setApiError(null) : generate} disabled={loading}>
-              {ai ? "Dismiss" : "Retry"}
+            <Btn variant="outline" className="px-3 py-1.5 text-xs" onClick={errSource === "gen" ? generate : () => setApiError(null)} disabled={loading}>
+              {errSource === "gen" ? "Retry" : "Dismiss"}
             </Btn>
           </div>
         )}
