@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { generateWithAi } from "@/lib/ai.server";
 
 // Opt-in live integration check: this makes one billable AI request.
-it.skipIf(process.env.RUN_LIVE_AI_TESTS !== "1")("generates an ordered Telugu formal letter without inventing recipient, place or date", async () => {
+it.skipIf(process.env["RUN_LIVE_AI_TESTS"] !== "1")("generates an ordered Telugu formal letter without inventing recipient, place or date", async () => {
   const result = await generateWithAi({
     category: "pothole",
     language: "te",
