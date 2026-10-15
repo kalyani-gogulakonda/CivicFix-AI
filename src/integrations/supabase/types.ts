@@ -14,7 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      complaints: {
+        Row: {
+          category: string
+          complaint_text: string
+          created_at: string
+          description: string
+          id: string
+          is_sample: boolean
+          language: string
+          location: string
+          missing_info: Json
+          photo_observations: string
+          photo_url: string | null
+          status: string
+          summary: string
+          updated_at: string
+          urgency: string
+          urgency_reason: string
+        }
+        Insert: {
+          category: string
+          complaint_text: string
+          created_at?: string
+          description: string
+          id?: string
+          is_sample?: boolean
+          language?: string
+          location: string
+          missing_info?: Json
+          photo_observations?: string
+          photo_url?: string | null
+          status?: string
+          summary?: string
+          updated_at?: string
+          urgency?: string
+          urgency_reason?: string
+        }
+        Update: {
+          category?: string
+          complaint_text?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_sample?: boolean
+          language?: string
+          location?: string
+          missing_info?: Json
+          photo_observations?: string
+          photo_url?: string | null
+          status?: string
+          summary?: string
+          updated_at?: string
+          urgency?: string
+          urgency_reason?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
