@@ -10,6 +10,7 @@ export const aiSchema = z.object({
   detectedCategory: z.enum(["pothole", "garbage", "streetlight", "water_leakage", "other"]),
   categoryMatches: z.boolean(),
   photoObservations: z.string(),
+  photoRelevance: z.enum(["matches", "does_not_match", "unclear", "no_photo"]),
   summary: z.string().min(1),
   missingInfo: z.array(z.string()),
   urgency: z.enum(["low", "medium", "high"]),
@@ -21,6 +22,8 @@ const INSTRUCTIONS = `You help residents write civic complaints to their local m
 Given the resident's chosen category, location, description and optionally a photo:
 - detectedCategory: the category that best fits the evidence. categoryMatches: true only if it equals the resident's chosen category.
 - photoObservations: describe only what is actually visible in the photo, factually. If no photo is attached, return exactly "No photo provided". Never invent photo details.
+- photoRelevance: "matches" only if the photo clearly shows the reported issue; "does_not_match" if it shows something unrelated; "unclear" if you cannot tell; "no_photo" if no photo is attached.
+- If photoRelevance is not "matches", the complaintText must NOT mention, reference or rely on any photo or attachment.
 - summary: one short sentence in English.
 - missingInfo: specific details still needed for the municipality to act (exact spot, size, duration, safety risk...), as short English questions. Empty if nothing important is missing. If the description is vague, list several.
 - urgency (low/medium/high) and urgencyReason: one short English sentence. This is a suggestion for human review.
@@ -70,5 +73,6 @@ Photo attached: ${input.photo ? "yes (see image)" : "no"}`;
     ...out,
     categoryMatches: out.detectedCategory === input.category,
     photoObservations: input.photo ? out.photoObservations : "No photo provided",
+    photoRelevance: input.photo ? (out.photoRelevance === "no_photo" ? "unclear" : out.photoRelevance) : "no_photo",
   };
 }
