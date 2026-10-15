@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_daily_usage: {
+        Row: {
+          count: number
+          day: string
+        }
+        Insert: {
+          count?: number
+          day: string
+        }
+        Update: {
+          count?: number
+          day?: string
+        }
+        Relationships: []
+      }
       complaints: {
         Row: {
           category: string
@@ -76,7 +91,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_ai_generation: { Args: { _limit?: number }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

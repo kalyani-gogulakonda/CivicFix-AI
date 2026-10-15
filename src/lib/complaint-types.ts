@@ -14,6 +14,7 @@ export const LANGUAGES = [
 export type Category = (typeof CATEGORIES)[number]["value"];
 export type Language = (typeof LANGUAGES)[number]["value"];
 export type Urgency = "low" | "medium" | "high";
+export type PhotoRelevance = "matches" | "does_not_match" | "unclear" | "no_photo";
 export type Status = "draft" | "ready";
 
 export interface ComplaintInput {
@@ -28,6 +29,7 @@ export interface AiResult {
   detectedCategory: Category;
   categoryMatches: boolean;
   photoObservations: string;
+  photoRelevance: PhotoRelevance;
   summary: string;
   missingInfo: string[];
   urgency: Urgency;
