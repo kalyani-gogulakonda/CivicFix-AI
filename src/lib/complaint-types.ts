@@ -6,36 +6,53 @@ export const CATEGORIES = [
   { value: "other", label: "Other" },
 ] as const;
 
+export const LANGUAGES = [
+  { value: "en", label: "English" },
+  { value: "te", label: "తెలుగు (Telugu)" },
+] as const;
+
 export type Category = (typeof CATEGORIES)[number]["value"];
-export type Priority = "low" | "medium" | "high";
+export type Language = (typeof LANGUAGES)[number]["value"];
+export type Urgency = "low" | "medium" | "high";
 export type Status = "draft" | "ready";
 
 export interface ComplaintInput {
   category: Category;
   location: string;
   description: string;
-  hasPhoto?: boolean | undefined;
+  language: Language;
+  photo?: string | undefined; // data URL, only sent to the AI
 }
 
 export interface AiResult {
-  mode: "ai" | "demo";
-  category: Category;
+  detectedCategory: Category;
+  categoryMatches: boolean;
+  photoObservations: string;
   summary: string;
   missingInfo: string[];
-  priority: Priority;
-  priorityReason: string;
-  draft: string;
+  urgency: Urgency;
+  urgencyReason: string;
+  complaintText: string;
 }
 
-export interface Complaint extends ComplaintInput {
+export interface Complaint {
   id: string;
-  createdAt: string;
-  status: Status;
+  category: Category;
+  location: string;
+  description: string;
+  photoPath: string | null;
+  language: Language;
   summary: string;
-  priority: Priority;
+  missingInfo: string[];
+  urgency: Urgency;
+  urgencyReason: string;
+  photoObservations: string;
   text: string;
-  photo?: string | undefined;
-  aiMode: "ai" | "demo";
+  status: Status;
+  isSample: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export const categoryLabel = (c: Category) => CATEGORIES.find((x) => x.value === c)?.label ?? c;
+export const languageLabel = (l: Language) => LANGUAGES.find((x) => x.value === l)?.label ?? l;

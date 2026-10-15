@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ReportFlow } from "@/components/civic/ReportFlow";
-import { Badge, Btn, Card } from "@/components/civic/ui";
-import { categoryLabel, type Complaint } from "@/lib/complaint-types";
-import { loadComplaints, saveComplaints } from "@/lib/storage";
+import { Badge, Btn, Card, fieldCls } from "@/components/civic/ui";
+import { categoryLabel, languageLabel, type Complaint, type Status } from "@/lib/complaint-types";
+import { deleteComplaint, listComplaints, photoUrl, updateComplaint } from "@/lib/storage";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "CivicFix AI — Smart Civic Complaint Assistant" },
-      { name: "description", content: "Turn potholes, garbage, broken streetlights and leaks into clear, professional complaints with AI." },
+      { name: "description", content: "Turn potholes, garbage, broken streetlights and leaks into clear, professional complaints with AI, in English or Telugu." },
       { property: "og:title", content: "CivicFix AI — Smart Civic Complaint Assistant" },
       { property: "og:description", content: "Write clear civic complaints with an AI assistant. Review, edit and keep your drafts." },
       { property: "og:type", content: "website" },
@@ -19,23 +19,39 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+const urgencyTone = { low: "gray", medium: "amber", high: "red" } as const;
+
+function Photo({ path }: { path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => { photoUrl(path).then(setUrl); }, [path]);
+  return url ? <img src={url} alt="Reported issue" className="h-40 rounded-lg object-cover" /> : <div className="h-40 w-56 animate-pulse rounded-lg bg-muted" />;
+}
+
 function Index() {
   const [list, setList] = useState<Complaint[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [mode, setMode] = useState<"home" | "report">("home");
   const [open, setOpen] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  useEffect(() => setList(loadComplaints()), []);
+  async function refresh() {
+    setLoadError(null);
+    try { setList(await listComplaints()); } catch (e) { setLoadError(e instanceof Error ? e.message : "Could not load."); setList([]); }
+  }
+  useEffect(() => { refresh(); }, []);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 3500);
     return () => clearTimeout(t);
   }, [toast]);
 
-  function update(next: Complaint[]) {
-    setList(next);
-    saveComplaints(next);
+  async function act(id: string, fn: () => Promise<void>, msg: string) {
+    setBusy(id);
+    try { await fn(); await refresh(); setToast(msg); } catch (e) { setToast(e instanceof Error ? e.message : "Something went wrong."); } finally { setBusy(null); }
   }
+  const setStatus = (c: Complaint, status: Status) => act(c.id, () => updateComplaint(c.id, { status }), status === "ready" ? "Marked Ready to Submit." : "Moved back to Draft.");
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,20 +61,23 @@ function Index() {
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">✓</span>
             CivicFix <span className="text-primary">AI</span>
           </button>
-          <Badge>Demo data only</Badge>
+          <Badge tone="amber">Public demo</Badge>
         </div>
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-8">
+        <div role="note" className="mb-6 rounded-lg border border-border bg-warning p-3 text-sm text-warning-foreground">
+          <strong>Public demo — no login.</strong> Saved complaints are visible to anyone using this app. Do not enter real names, phone numbers or home addresses.
+        </div>
         {toast && <div role="status" className="mb-6 rounded-lg bg-accent p-3 text-sm font-medium text-accent-foreground">{toast}</div>}
 
         {mode === "report" ? (
           <ReportFlow
             onCancel={() => setMode("home")}
-            onSave={(c) => {
-              update([c, ...(list ?? [])]);
+            onSaved={(status) => {
               setMode("home");
-              setToast(`Saved as ${c.status === "ready" ? "Ready to Submit" : "Draft"}. It has not been sent to any authority.`);
+              refresh();
+              setToast(`Saved as ${status === "ready" ? "Ready to Submit" : "Draft"}. It has not been sent to any authority.`);
             }}
           />
         ) : (
@@ -66,13 +85,14 @@ function Index() {
             <section className="rounded-2xl bg-navy p-6 text-navy-foreground sm:p-8">
               <h1 className="text-3xl font-bold sm:text-4xl">Report it clearly. Get it fixed faster.</h1>
               <p className="mt-3 max-w-xl text-navy-foreground/80">
-                Describe a pothole, overflowing bin, broken streetlight or water leak. Our AI assistant turns it into a clear, professional complaint you can review and send to your municipality yourself.
+                Describe a pothole, overflowing bin, broken streetlight or water leak. Our AI assistant turns it into a clear, professional complaint in English or Telugu that you can review and send to your municipality yourself.
               </p>
               <Btn className="mt-6" onClick={() => setMode("report")}>+ Report an Issue</Btn>
             </section>
 
             <section className="mt-10">
-              <h2 className="text-xl font-bold">Your complaints</h2>
+              <h2 className="text-xl font-bold">Saved complaints</h2>
+              {loadError && <div role="alert" className="mt-4 flex items-center justify-between gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{loadError}<Btn variant="outline" className="px-3 py-1.5 text-xs" onClick={refresh}>Retry</Btn></div>}
               {list === null ? (
                 <div className="mt-4 space-y-3">{[0, 1].map((i) => <div key={i} className="h-20 animate-pulse rounded-xl bg-muted" />)}</div>
               ) : list.length === 0 ? (
@@ -87,7 +107,7 @@ function Index() {
                       <Card className="p-4 sm:p-5">
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="font-semibold">{categoryLabel(c.category)} {c.id.startsWith("demo-") && <Badge tone="amber">Fictional sample</Badge>}</p>
+                            <p className="flex flex-wrap items-center gap-2 font-semibold">{categoryLabel(c.category)} {c.isSample && <Badge tone="amber">Fictional sample</Badge>}</p>
                             <p className="truncate text-sm text-muted-foreground">{c.location}</p>
                           </div>
                           <div className="flex items-center gap-2">
@@ -97,17 +117,34 @@ function Index() {
                         </div>
                         <div className="mt-3 flex flex-wrap gap-1">
                           <Btn variant="ghost" className="px-2 py-1 text-xs" onClick={() => setOpen(open === c.id ? null : c.id)}>{open === c.id ? "Hide" : "View"}</Btn>
-                          {c.status === "draft" && <Btn variant="ghost" className="px-2 py-1 text-xs" onClick={() => confirm("Confirm you have reviewed this complaint and it is accurate, then mark it Ready to Submit?") && update(list.map((x) => (x.id === c.id ? { ...x, status: "ready" } : x)))}>Mark Ready</Btn>}
-                          {c.status === "ready" && <Btn variant="ghost" className="px-2 py-1 text-xs" onClick={() => update(list.map((x) => (x.id === c.id ? { ...x, status: "draft" } : x)))}>Back to Draft</Btn>}
-                          <Btn variant="danger" className="px-2 py-1 text-xs" onClick={() => confirm("Delete this complaint?") && update(list.filter((x) => x.id !== c.id))}>Delete</Btn>
+                          <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => { setOpen(c.id); setEditing({ id: c.id, text: c.text }); }}>Edit</Btn>
+                          {c.status === "draft" && <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => confirm("Confirm you have reviewed this complaint and it is accurate, then mark it Ready to Submit?") && setStatus(c, "ready")}>Mark Ready</Btn>}
+                          {c.status === "ready" && <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => setStatus(c, "draft")}>Back to Draft</Btn>}
+                          <Btn variant="danger" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => confirm("Delete this complaint?") && act(c.id, () => deleteComplaint(c), "Complaint deleted.")}>Delete</Btn>
                         </div>
                         {open === c.id && (
                           <div className="mt-3 space-y-3 border-t border-border pt-3">
-                            {c.photo && <img src={c.photo} alt="Issue" className="h-32 rounded-lg object-cover" />}
+                            {c.photoPath && <Photo path={c.photoPath} />}
                             <p className="text-sm"><span className="font-semibold">Summary:</span> {c.summary}</p>
-                            <p className="text-sm"><span className="font-semibold">Suggested priority (for human review):</span> {c.priority} · {c.aiMode === "ai" ? "AI-generated" : "Template (demo mode, not AI)"}</p>
-                            <pre className="whitespace-pre-wrap rounded-lg bg-muted p-3 font-sans text-sm">{c.text}</pre>
-                            <Btn variant="outline" className="text-xs" onClick={() => navigator.clipboard.writeText(c.text).then(() => setToast("Copied to clipboard."))}>Copy text</Btn>
+                            <p className="flex flex-wrap items-center gap-2 text-sm"><span className="font-semibold">Urgency (AI suggestion — please review):</span> <Badge tone={urgencyTone[c.urgency]}>{c.urgency}</Badge> <span className="text-muted-foreground">{c.urgencyReason}</span></p>
+                            <p className="text-sm"><span className="font-semibold">Photo observations:</span> {c.photoObservations}</p>
+                            {c.missingInfo.length > 0 && <div className="text-sm"><span className="font-semibold">Missing information:</span><ul className="mt-1 list-disc pl-5">{c.missingInfo.map((m) => <li key={m}>{m}</li>)}</ul></div>}
+                            <p className="text-xs text-muted-foreground">Language: {languageLabel(c.language)} · {c.isSample ? "Fictional sample, not AI" : "AI-generated, reviewed by the user"} · Updated {new Date(c.updatedAt).toLocaleString()}</p>
+                            {editing?.id === c.id ? (
+                              <div>
+                                <label htmlFor={`edit-${c.id}`} className="mb-1.5 block text-sm font-semibold">Complaint text</label>
+                                <textarea id={`edit-${c.id}`} rows={10} className={fieldCls} value={editing.text} onChange={(e) => setEditing({ id: c.id, text: e.target.value })} />
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  <Btn className="text-xs" disabled={busy === c.id || editing.text.trim().length < 20} onClick={() => act(c.id, () => updateComplaint(c.id, { text: editing.text }), "Changes saved.").then(() => setEditing(null))}>Save changes</Btn>
+                                  <Btn variant="ghost" className="text-xs" onClick={() => setEditing(null)}>Cancel</Btn>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <pre className="whitespace-pre-wrap rounded-lg bg-muted p-3 font-sans text-sm">{c.text}</pre>
+                                <Btn variant="outline" className="text-xs" onClick={() => navigator.clipboard.writeText(c.text).then(() => setToast("Copied to clipboard."))}>Copy text</Btn>
+                              </>
+                            )}
                           </div>
                         )}
                       </Card>

@@ -5,21 +5,29 @@ const inputSchema = z.object({
   category: z.enum(["pothole", "garbage", "streetlight", "water_leakage", "other"]),
   location: z.string().trim().min(3).max(200),
   description: z.string().trim().min(10).max(2000),
-  hasPhoto: z.boolean().optional(),
+  language: z.enum(["en", "te"]),
+  photo: z
+    .string()
+    .max(7_000_000)
+    .regex(/^data:image\/(png|jpe?g|webp|gif);base64,/)
+    .optional(),
 });
 
 export const generateComplaint = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => inputSchema.parse(d))
   .handler(async ({ data }) => {
-    const { generateWithAi, demoResult } = await import("./ai.server");
+    const { generateWithAi } = await import("./ai.server");
     try {
-      return await generateWithAi(data);
+      return { ok: true as const, result: await generateWithAi(data) };
     } catch (e) {
       console.error("AI generation failed", e);
       const msg = e instanceof Error ? e.message : String(e);
-      if (/402|credit/i.test(msg)) throw new Error("AI credits are exhausted. Please try again later.");
-      if (/429|rate/i.test(msg)) throw new Error("The AI is busy right now. Please wait a moment and retry.");
-      if (/401|api key/i.test(msg)) return demoResult(data);
-      throw new Error("The AI assistant could not generate a draft. Please try again.");
+      let error = "The AI could not generate a draft. Please try again.";
+      if (msg === "AI_NOT_CONFIGURED" || /401/.test(msg)) error = "The AI service is not configured for this app.";
+      else if (msg === "AI_INVALID_OUTPUT" || /schema|parse|No object/i.test(msg)) error = "The AI returned an incomplete answer. Please try again.";
+      else if (/402|credit/i.test(msg)) error = "AI credits are used up. Please try again later.";
+      else if (/429|rate/i.test(msg)) error = "The AI is busy right now. Please wait a moment and retry.";
+      else if (/403/.test(msg)) error = "The AI declined this request.";
+      return { ok: false as const, error };
     }
   });
