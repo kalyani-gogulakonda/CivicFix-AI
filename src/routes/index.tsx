@@ -177,7 +177,7 @@ function Index() {
               <Btn className="text-xs" disabled={!readyReviewed || busy === readyTarget.id} onClick={() => { const c = readyTarget; setReadyTarget(null); setStatus(c, "ready"); }}>Confirm Ready to Submit</Btn>
               <Btn variant="ghost" className="text-xs" onClick={() => setReadyTarget(null)}>Cancel</Btn>
             </div>
-          </Card>
+          </div>
         </div>
       )}
       <footer className="mx-auto max-w-3xl px-4 pb-8 text-xs text-muted-foreground">
