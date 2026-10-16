@@ -68,7 +68,10 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
     setPhotoFile(undefined);
     setPhoto(undefined);
     setKeepPhoto(false);
-    if (!f) return;
+    if (!f) {
+      setAi((prev) => (prev ? { ...prev, photoRelevance: "no_photo", photoObservations: "No photo provided" } : prev));
+      return;
+    }
     if (f.size > 4_000_000) return setErrors((x) => ({ ...x, photo: "Photo must be under 4 MB." }));
     if (!/^image\/(png|jpe?g|webp|gif)$/.test(f.type)) return setErrors((x) => ({ ...x, photo: "Please use a JPG, PNG, WebP or GIF image." }));
     setErrors((x) => ({ ...x, photo: "" }));
