@@ -166,7 +166,7 @@ function Index() {
       </main>
       {readyTarget && (
         <div role="dialog" aria-modal="true" aria-labelledby="ready-title" className="fixed inset-0 z-50 grid place-items-center bg-foreground/40 p-4" onClick={() => setReadyTarget(null)}>
-          <Card className="w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 sm:p-6" onClick={(e) => e.stopPropagation()}>
             <h2 id="ready-title" className="text-lg font-bold">Mark as Ready to Submit?</h2>
             <p className="mt-1 text-sm text-muted-foreground">Review the complaint text before marking it ready. CivicFix AI does not send it to any authority.</p>
             <label className="mt-4 flex items-start gap-2 text-sm">
