@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ReportFlow } from "@/components/civic/ReportFlow";
 import { Badge, Btn, Card, fieldCls } from "@/components/civic/ui";
-import { categoryLabel, languageLabel, type Complaint, type Status } from "@/lib/complaint-types";
+import { categoryLabel, hasPlaceholders, languageLabel, type Complaint, type Status } from "@/lib/complaint-types";
 import { deleteComplaint, listComplaints, photoUrl, updateComplaint } from "@/lib/storage";
 
 export const Route = createFileRoute("/")({
@@ -35,6 +35,14 @@ function Index() {
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [readyTarget, setReadyTarget] = useState<Complaint | null>(null);
+  const [readyReviewed, setReadyReviewed] = useState(false);
+
+  function requestReady(c: Complaint) {
+    if (hasPlaceholders(c.text)) { setToast("Fill in the bracketed details before marking this ready."); return; }
+    setReadyReviewed(false);
+    setReadyTarget(c);
+  }
 
   async function refresh() {
     setLoadError(null);
@@ -118,7 +126,7 @@ function Index() {
                         <div className="mt-3 flex flex-wrap gap-1">
                           <Btn variant="ghost" className="px-2 py-1 text-xs" onClick={() => setOpen(open === c.id ? null : c.id)}>{open === c.id ? "Hide" : "View"}</Btn>
                           {!c.isSample && <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => { setOpen(c.id); setEditing({ id: c.id, text: c.text }); }}>Edit</Btn>}
-                          {!c.isSample && c.status === "draft" && <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => confirm("Confirm you have reviewed this complaint and it is accurate, then mark it Ready to Submit?") && setStatus(c, "ready")}>Mark Ready</Btn>}
+                          {!c.isSample && c.status === "draft" && <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => requestReady(c)}>Mark Ready</Btn>}
                           {!c.isSample && c.status === "ready" && <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => setStatus(c, "draft")}>Back to Draft</Btn>}
                           {c.isSample ? <span className="self-center text-xs text-muted-foreground">Read-only example</span> : <Btn variant="danger" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => confirm("Delete this complaint?") && act(c.id, () => deleteComplaint(c), "Complaint deleted.")}>Delete</Btn>}
                         </div>
@@ -156,6 +164,22 @@ function Index() {
           </>
         )}
       </main>
+      {readyTarget && (
+        <div role="dialog" aria-modal="true" aria-labelledby="ready-title" className="fixed inset-0 z-50 grid place-items-center bg-foreground/40 p-4" onClick={() => setReadyTarget(null)}>
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 sm:p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 id="ready-title" className="text-lg font-bold">Mark as Ready to Submit?</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Review the complaint text before marking it ready. CivicFix AI does not send it to any authority.</p>
+            <label className="mt-4 flex items-start gap-2 text-sm">
+              <input type="checkbox" className="mt-0.5 h-4 w-4 accent-primary" checked={readyReviewed} onChange={(e) => setReadyReviewed(e.target.checked)} />
+              I have reviewed and edited this AI-generated content and confirm it is accurate.
+            </label>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Btn className="text-xs" disabled={!readyReviewed || busy === readyTarget.id} onClick={() => { const c = readyTarget; setReadyTarget(null); setStatus(c, "ready"); }}>Confirm Ready to Submit</Btn>
+              <Btn variant="ghost" className="text-xs" onClick={() => setReadyTarget(null)}>Cancel</Btn>
+            </div>
+          </div>
+        </div>
+      )}
       <footer className="mx-auto max-w-3xl px-4 pb-8 text-xs text-muted-foreground">
         CivicFix AI helps you write complaints. It does not submit them to, or represent, any government body.
       </footer>
