@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateComplaint } from "@/lib/complaint.functions";
 import { createComplaint, uploadPhoto } from "@/lib/storage";
-import { CATEGORIES, LANGUAGES, categoryLabel, type AiResult, type Category, type Language, type Status } from "@/lib/complaint-types";
+import { CATEGORIES, LANGUAGES, categoryLabel, hasPlaceholders, type AiResult, type Category, type Language, type Status } from "@/lib/complaint-types";
 import { AiLabel, Badge, Btn, Card, fieldCls } from "./ui";
 
 const urgencyTone = { low: "gray", medium: "amber", high: "red" } as const;
@@ -79,6 +79,11 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
 
   async function save(status: Status) {
     if (!ai || !finalCategory) return;
+    if (status === "ready" && hasPlaceholders(text)) {
+      setErrSource("save");
+      setApiError("Fill in the bracketed details before marking this ready.");
+      return;
+    }
     setSaving(true);
     setApiError(null);
     try {
