@@ -50,12 +50,14 @@ export async function generateWithAi(input: ComplaintInput): Promise<AiResult> {
     headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
   });
   const lang = input.language === "te" ? "Telugu (తెలుగు script)" : "English";
+  const now = new Date();
+  const today = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
   const text = `Category chosen by resident: ${input.category}
 Location / landmark: ${input.location}
 Description: ${input.description}
 Output language for complaintText: ${lang}
 Photo attached: ${input.photo ? "yes (see image)" : "no"}
-Today's date (use for the letter date): ${new Date().toISOString().slice(0, 10)}`;
+Today's date (use for the letter date, format DD/MM/YYYY): ${today}`;
 
   const content: Array<{ type: "text"; text: string } | { type: "image"; image: URL }> = [{ type: "text", text }];
   if (input.photo) content.push({ type: "image", image: new URL(input.photo) });

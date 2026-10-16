@@ -27,7 +27,8 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
   const [reviewed, setReviewed] = useState(false);
   const [keepPhoto, setKeepPhoto] = useState(false);
   const [limitHit, setLimitHit] = useState(false);
-  const photoMismatch = !!ai && !!photoFile && ai.photoRelevance !== "matches";
+  const photoMismatch =
+    !!ai && !!photoFile && (ai.photoRelevance === "does_not_match" || ai.photoRelevance === "unclear");
 
   function validate() {
     const e: FieldErr = {};
