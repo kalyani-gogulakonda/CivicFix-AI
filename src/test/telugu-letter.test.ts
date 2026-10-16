@@ -17,6 +17,6 @@ it.skipIf(process.env["RUN_LIVE_AI_TESTS"] !== "1")("generates an ordered Telugu
   expect(letter).toContain("[సంబంధిత అధికారికి]");
   expect(letter).toContain("[స్థలం]");
   expect(letter).not.toContain("[తేదీ]");
-  expect(letter).toMatch(/తేదీ:\s*\d{4}-\d{2}-\d{2}/);
+  expect(letter).toMatch(/తేదీ:\s*\d{2}\/\d{2}\/\d{4}/);
   expect(result.photoRelevance).toBe("no_photo");
 }, 150_000);
