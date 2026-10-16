@@ -54,7 +54,8 @@ export async function generateWithAi(input: ComplaintInput): Promise<AiResult> {
 Location / landmark: ${input.location}
 Description: ${input.description}
 Output language for complaintText: ${lang}
-Photo attached: ${input.photo ? "yes (see image)" : "no"}`;
+Photo attached: ${input.photo ? "yes (see image)" : "no"}
+Today's date (use for the letter date): ${new Date().toISOString().slice(0, 10)}`;
 
   const content: Array<{ type: "text"; text: string } | { type: "image"; image: URL }> = [{ type: "text", text }];
   if (input.photo) content.push({ type: "image", image: new URL(input.photo) });
