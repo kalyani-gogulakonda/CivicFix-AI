@@ -56,5 +56,7 @@ export interface Complaint {
   updatedAt: string;
 }
 
+export const hasPlaceholders = (t: string) => /\[[^\]]*\]/.test(t);
+
 export const categoryLabel = (c: Category) => CATEGORIES.find((x) => x.value === c)?.label ?? c;
 export const languageLabel = (l: Language) => LANGUAGES.find((x) => x.value === l)?.label ?? l;
