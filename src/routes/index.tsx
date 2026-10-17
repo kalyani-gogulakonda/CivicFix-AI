@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ReportFlow } from "@/components/civic/ReportFlow";
 import { Badge, Btn, Card, fieldCls } from "@/components/civic/ui";
-import { categoryLabel, hasPlaceholders, languageLabel, type Complaint, type Status } from "@/lib/complaint-types";
+import { categoryLabel, languageLabel, placeholderBlockMessage, type Complaint, type Status } from "@/lib/complaint-types";
 import { deleteComplaint, listComplaints, photoUrl, updateComplaint } from "@/lib/storage";
 
 export const Route = createFileRoute("/")({
@@ -39,7 +39,7 @@ function Index() {
   const [readyReviewed, setReadyReviewed] = useState(false);
 
   function requestReady(c: Complaint) {
-    if (hasPlaceholders(c.text)) { setToast("Fill in the bracketed details before marking this ready."); return; }
+    if (hasPlaceholders(c.text)) { setToast(placeholderBlockMessage(c.text)); return; }
     setReadyReviewed(false);
     setReadyTarget(c);
   }

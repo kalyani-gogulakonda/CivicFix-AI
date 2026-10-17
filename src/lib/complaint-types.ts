@@ -56,7 +56,15 @@ export interface Complaint {
   updatedAt: string;
 }
 
-export const hasPlaceholders = (t: string) => /\[[^\]]*\]/.test(t);
+export const placeholderItems = (t: string): string[] => t.match(/\[[^\]]*\]/g) ?? [];
+export const hasPlaceholders = (t: string) => placeholderItems(t).length > 0;
+
+/** Message shown when "Ready to Submit" is blocked by leftover bracketed placeholders. */
+export function placeholderBlockMessage(t: string): string {
+  const items = placeholderItems(t);
+  const list = items.length > 0 ? ` Still there: ${items.join(", ")}.` : "";
+  return `Fill in the bracketed details before marking this ready.${list} Replace each one, including the [ ] brackets.`;
+}
 
 export const categoryLabel = (c: Category) => CATEGORIES.find((x) => x.value === c)?.label ?? c;
 export const languageLabel = (l: Language) => LANGUAGES.find((x) => x.value === l)?.label ?? l;
