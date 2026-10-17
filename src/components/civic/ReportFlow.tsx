@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateComplaint } from "@/lib/complaint.functions";
 import { createComplaint, uploadPhoto } from "@/lib/storage";
-import { CATEGORIES, LANGUAGES, categoryLabel, placeholderBlockMessage, type AiResult, type Category, type Language, type Status } from "@/lib/complaint-types";
+import { CATEGORIES, LANGUAGES, categoryLabel, hasPlaceholders, placeholderBlockMessage, type AiResult, type Category, type Language, type Status } from "@/lib/complaint-types";
 import { AiLabel, Badge, Btn, Card, fieldCls } from "./ui";
 
 const urgencyTone = { low: "gray", medium: "amber", high: "red" } as const;
