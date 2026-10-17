@@ -27,6 +27,19 @@ function Photo({ path }: { path: string }) {
   return url ? <img src={url} alt="Reported issue" className="h-40 rounded-lg object-cover" /> : <div className="h-40 w-56 animate-pulse rounded-lg bg-muted" />;
 }
 
+async function downloadPhoto(path: string, name: string) {
+  const url = await photoUrl(path);
+  if (!url) throw new Error("Could not get the photo link. Please try again.");
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Could not download the photo. Please try again.");
+  const blob = await res.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function Index() {
   const [list, setList] = useState<Complaint[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -124,6 +137,12 @@ function Index() {
                               <>
                                 <span className="text-xs text-muted-foreground">You've reviewed this complaint. Copy it and send it to the right authority yourself.</span>
                                 <Btn variant="ghost" className="px-2 py-1 text-xs" onClick={() => navigator.clipboard.writeText(c.text).then(() => setToast("Complaint copied. Paste it into an email or portal to the authority."))}>Copy complaint</Btn>
+                              </>
+                            )}
+                            {c.status === "ready" && c.photoPath && (
+                              <>
+                                <span className="text-xs text-muted-foreground">{/\bphoto\b|ఫోటో|చిత్రం/i.test(c.text) ? "Attach this photo when you submit. The complaint text refers to it." : "Attach this photo when you submit."}</span>
+                                <Btn variant="ghost" className="px-2 py-1 text-xs" disabled={busy === c.id} onClick={() => act(c.id, () => downloadPhoto(c.photoPath!, "complaint-photo"), "")}>Download photo</Btn>
                               </>
                             )}
                             <span className="text-xs text-muted-foreground">{new Date(c.createdAt).toLocaleDateString()}</span>
