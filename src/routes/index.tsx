@@ -118,8 +118,14 @@ function Index() {
                             <p className="flex flex-wrap items-center gap-2 font-semibold">{categoryLabel(c.category)} {c.isSample && <Badge tone="amber">Fictional sample</Badge>}</p>
                             <p className="truncate text-sm text-muted-foreground">{c.location}</p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center justify-end gap-2">
                             {c.status === "ready" ? <Badge tone="green">Ready to Submit</Badge> : <Badge>Draft</Badge>}
+                            {c.status === "ready" && (
+                              <>
+                                <span className="text-xs text-muted-foreground">You've reviewed this complaint. Copy it and send it to the right authority yourself.</span>
+                                <Btn variant="ghost" className="px-2 py-1 text-xs" onClick={() => navigator.clipboard.writeText(c.text).then(() => setToast("Complaint copied. Paste it into an email or portal to the authority."))}>Copy complaint</Btn>
+                              </>
+                            )}
                             <span className="text-xs text-muted-foreground">{new Date(c.createdAt).toLocaleDateString()}</span>
                           </div>
                         </div>
