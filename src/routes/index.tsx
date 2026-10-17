@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ReportFlow } from "@/components/civic/ReportFlow";
 import { Badge, Btn, Card, fieldCls } from "@/components/civic/ui";
-import { categoryLabel, languageLabel, placeholderBlockMessage, type Complaint, type Status } from "@/lib/complaint-types";
+import { categoryLabel, hasPlaceholders, languageLabel, placeholderBlockMessage, type Complaint, type Status } from "@/lib/complaint-types";
 import { deleteComplaint, listComplaints, photoUrl, updateComplaint } from "@/lib/storage";
 
 export const Route = createFileRoute("/")({
