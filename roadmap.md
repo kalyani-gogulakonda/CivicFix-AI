@@ -1,7 +1,9 @@
 # Roadmap
 
 ## Open
-- (none)
+- Restrict photo deletion to the server's complaint deletion flow; prevent direct deletion and overwrite.
+- Verify photo upload, view, download, coupled deletion, and blocked direct deletion/overwrite.
+- Resolve only the four selected security findings, recording intended public access.
 
 ## Done (2026-10-18)
 - [x] Ready-block message (form + list) lists each leftover bracketed item (deduped) + "Replace each one, including the [ ] brackets."

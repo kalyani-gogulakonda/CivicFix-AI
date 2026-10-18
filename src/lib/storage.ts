@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Complaint, Status } from "./complaint-types";
+import { deleteDemoComplaint } from "./storage.functions";
 
 const BUCKET = "complaint-photos";
 
@@ -40,7 +41,7 @@ export async function listComplaints(): Promise<Complaint[]> {
 export async function uploadPhoto(file: File): Promise<string> {
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
   const path = `${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type });
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file, { contentType: file.type, upsert: false });
   if (error) throw new Error("Photo upload failed.");
   return path;
 }
@@ -68,7 +69,5 @@ export async function updateComplaint(id: string, patch: { status?: Status; text
 }
 
 export async function deleteComplaint(c: Complaint) {
-  const { error } = await supabase.from("complaints").delete().eq("id", c.id);
-  if (error) throw new Error("Could not delete the complaint.");
-  if (c.photoPath) await supabase.storage.from(BUCKET).remove([c.photoPath]);
+  await deleteDemoComplaint({ data: { id: c.id } });
 }

@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Complaint deletion goes through an ID-only server function and a server-only helper; database rules deny direct client complaint deletion and photo deletion/overwrite so photo cleanup cannot be bypassed or target a client-supplied path.
