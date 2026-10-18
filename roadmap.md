@@ -1,10 +1,11 @@
 # Roadmap
 
 ## Open
-- [x] Ready-block message lists bracketed items + "Replace each one, including the [ ] brackets." (form + list)
-- [x] Ready to Submit: add "You've reviewed this complaint…" note + Copy complaint button
-- [ ] Verify no-photo case never shows the photo warning (browser check)
-- [ ] Browser-test: placeholder-block message (list + form), Ready note + Copy complaint button
+- (none)
 
-## Done (earlier)
-- Photo-check gating by attached photo, DD/MM/YYYY auto date, Telugu letter format, review-confirmation dialog for Mark Ready.
+## Done (2026-10-18)
+- [x] Ready-block message (form + list) lists each leftover bracketed item (deduped) + "Replace each one, including the [ ] brackets."
+- [x] Ready to Submit rows show "You've reviewed this complaint. Copy it and send it to the right authority yourself." + Copy complaint button
+- [x] Ready rows with a photo show Download photo button + "Attach this photo when you submit." (adds "The complaint text refers to it." only when the text actually mentions the photo)
+- [x] Verified in browser: no-photo form shows no photo warning; DD/MM/YYYY date line; list flow block → edit → review dialog → Ready; clipboard copy; photo download.
+- Test data cleaned up (test complaint row deleted; unused test photo left in private storage bucket under test/).
