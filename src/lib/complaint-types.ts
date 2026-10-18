@@ -61,7 +61,7 @@ export const hasPlaceholders = (t: string) => placeholderItems(t).length > 0;
 
 /** Message shown when "Ready to Submit" is blocked by leftover bracketed placeholders. */
 export function placeholderBlockMessage(t: string): string {
-  const items = placeholderItems(t);
+  const items = [...new Set(placeholderItems(t))];
   const list = items.length > 0 ? ` Still there: ${items.join(", ")}.` : "";
   return `Fill in the bracketed details before marking this ready.${list} Replace each one, including the [ ] brackets.`;
 }
