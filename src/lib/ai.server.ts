@@ -1,10 +1,9 @@
-import { createOpenAI } from "@ai-sdk/openai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { Output, streamText } from "ai";
 import { z } from "zod";
 import type { ComplaintInput, AiResult } from "./complaint-types";
 
-const GATEWAY = "https://ai.gateway.lovable.dev/v1";
-const MODEL = "openai/gpt-6-astra";
+const MODEL = "gemini-3.8-flash";
 
 export const aiSchema = z.object({
   detectedCategory: z.enum(["pothole", "garbage", "streetlight", "water_leakage", "other"]),
@@ -41,14 +40,10 @@ Keep the existing photo-evidence restrictions: if photoRelevance is not "matches
 The other JSON fields still follow the original English-summary and analysis instructions. Return the full Telugu letter in complaintText within the existing JSON schema.`;
 
 export async function generateWithAi(input: ComplaintInput): Promise<AiResult> {
-  const apiKey = process.env["LOVABLE_API_KEY"];
+  const apiKey = process.env["GEMINI_API_KEY"];
   if (!apiKey) throw new Error("AI_NOT_CONFIGURED");
 
-  const provider = createOpenAI({
-    baseURL: GATEWAY,
-    apiKey,
-    headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-  });
+  const provider = createGoogleGenerativeAI({ apiKey });
   const lang = input.language === "te" ? "Telugu (తెలుగు script)" : "English";
   const now = new Date();
   const today = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
@@ -63,20 +58,12 @@ Today's date (use for the letter date, format DD/MM/YYYY): ${today}`;
   if (input.photo) content.push({ type: "image", image: new URL(input.photo) });
 
   const result = streamText({
-    model: provider.responses(MODEL),
-    instructions: input.language === "te" ? `${INSTRUCTIONS}\n\n${TELUGU_LETTER_INSTRUCTIONS}` : INSTRUCTIONS,
+    model: provider(MODEL),
+    system: input.language === "te" ? `${INSTRUCTIONS}\n\n${TELUGU_LETTER_INSTRUCTIONS}` : INSTRUCTIONS,
     output: Output.object({ schema: aiSchema }),
     messages: [{ role: "user", content }],
     maxRetries: 0,
-    providerOptions: {
-      openai: {
-        forceReasoning: true,
-        reasoningEffort: "low",
-        reasoningSummary: "auto",
-        store: false,
-        include: ["reasoning.encrypted_content"],
-      },
-    },
+    providerOptions: { google: { thinkingConfig: { thinkingLevel: "low" } } },
   });
   const raw = await result.output;
   const parsed = aiSchema.safeParse(raw);
