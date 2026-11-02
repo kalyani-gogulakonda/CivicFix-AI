@@ -43,7 +43,6 @@ export const generateComplaint = createServerFn({ method: "POST" })
       const msg = e instanceof Error ? e.message : String(e);
       let error = "Something went wrong, please retry.";
       if (msg === "AI_NOT_CONFIGURED" || msg === "AI_HTTP_401") error = "The AI service is not configured for this app.";
-      else if (msg === "AI_INVALID_OUTPUT" ) error = "The AI returned an incomplete answer. Please try again.";
       else if (msg === "AI_HTTP_429") error = "The AI is busy right now. Please wait a moment and retry.";
       return { ok: false as const, error };
     }
