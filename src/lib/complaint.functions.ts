@@ -41,12 +41,10 @@ export const generateComplaint = createServerFn({ method: "POST" })
     } catch (e) {
       console.error("AI generation failed", e);
       const msg = e instanceof Error ? e.message : String(e);
-      let error = "The AI could not generate a draft. Please try again.";
-      if (msg === "AI_NOT_CONFIGURED" || /401|API key/i.test(msg)) error = "The AI service is not configured for this app.";
-      else if (msg === "AI_INVALID_OUTPUT" || /schema|parse|No object/i.test(msg)) error = "The AI returned an incomplete answer. Please try again.";
-      else if (/402|credit/i.test(msg)) error = "AI credits are used up. Please try again later.";
-      else if (/429|rate/i.test(msg)) error = "The AI is busy right now. Please wait a moment and retry.";
-      else if (/403/.test(msg)) error = "The AI declined this request.";
+      let error = "Something went wrong, please retry.";
+      if (msg === "AI_NOT_CONFIGURED" || msg === "AI_HTTP_401") error = "The AI service is not configured for this app.";
+      else if (msg === "AI_INVALID_OUTPUT" ) error = "The AI returned an incomplete answer. Please try again.";
+      else if (msg === "AI_HTTP_429") error = "The AI is busy right now. Please wait a moment and retry.";
       return { ok: false as const, error };
     }
   });

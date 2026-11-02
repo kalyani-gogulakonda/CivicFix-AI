@@ -1,5 +1,3 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { Output, streamText } from "ai";
 import { z } from "zod";
 import type { ComplaintInput, AiResult } from "./complaint-types";
 
@@ -27,6 +25,7 @@ Given the resident's chosen category, location, description and optionally a pho
 - missingInfo: specific details still needed for the municipality to act (exact spot, size, duration, safety risk...), as short English questions. Empty if nothing important is missing. If the description is vague, list several.
 - urgency (low/medium/high) and urgencyReason: one short English sentence. This is a suggestion for human review.
 - complaintText: a polite, formal complaint letter (120-200 words) addressed to the Municipal Services Department, written ENTIRELY in the requested output language. Include a date line with today's date (provided in the input, format DD/MM/YYYY), never a date placeholder. Do not invent facts not given by the resident or visible in the photo.
+FACTS ONLY: complaintText, summary and urgencyReason must state only facts explicitly given in the description or clearly visible in the photo. Do not add duration, frequency, severity, size, cause, impact or adjectives such as "continuous", "large", "dangerous" or "for weeks" unless stated or visible. Put anything unknown into missingInfo instead.
 Never claim the complaint has been submitted or resolved. Never include personal data (names, phone numbers, ID numbers, home addresses); sign off with a placeholder for the resident's name ("[Your name]" in English, "[మీ పేరు]" in Telugu).`;
 
 const TELUGU_LETTER_INSTRUCTIONS = `For Telugu complaintText, override the generic English letter format and default Municipal Services Department addressee above. Write a standard, respectful Telugu అధికారిక లేఖ / ఫిర్యాదు పత్రం, not a literal translation of an English letter. Use readable plain text with blank lines between sections, no Markdown decoration, and this exact order:
@@ -39,11 +38,28 @@ const TELUGU_LETTER_INSTRUCTIONS = `For Telugu complaintText, override the gener
 Keep the existing photo-evidence restrictions: if photoRelevance is not "matches", the letter must not mention a photo, an attachment or photographic evidence, even if the resident wants to keep the photo. Do not add an attachments section in that case.
 The other JSON fields still follow the original English-summary and analysis instructions. Return the full Telugu letter in complaintText within the existing JSON schema.`;
 
+const S = { type: "STRING" };
+const responseSchema = {
+  type: "OBJECT",
+  properties: {
+    detectedCategory: { type: "STRING", enum: ["pothole", "garbage", "streetlight", "water_leakage", "other"] },
+    categoryMatches: { type: "BOOLEAN" },
+    photoObservations: S,
+    photoRelevance: { type: "STRING", enum: ["matches", "does_not_match", "unclear", "no_photo"] },
+    summary: S,
+    missingInfo: { type: "ARRAY", items: S },
+    urgency: { type: "STRING", enum: ["low", "medium", "high"] },
+    urgencyReason: S,
+    complaintText: S,
+  },
+  required: ["detectedCategory", "categoryMatches", "photoObservations", "photoRelevance", "summary", "missingInfo", "urgency", "urgencyReason", "complaintText"],
+};
+
 export async function generateWithAi(input: ComplaintInput): Promise<AiResult> {
+  const t0 = Date.now();
   const apiKey = process.env["GEMINI_API_KEY"];
   if (!apiKey) throw new Error("AI_NOT_CONFIGURED");
 
-  const provider = createGoogleGenerativeAI({ apiKey });
   const lang = input.language === "te" ? "Telugu (తెలుగు script)" : "English";
   const now = new Date();
   const today = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
@@ -54,19 +70,46 @@ Output language for complaintText: ${lang}
 Photo attached: ${input.photo ? "yes (see image)" : "no"}
 Today's date (use for the letter date, format DD/MM/YYYY): ${today}`;
 
-  const content: Array<{ type: "text"; text: string } | { type: "image"; image: URL }> = [{ type: "text", text }];
-  if (input.photo) content.push({ type: "image", image: new URL(input.photo) });
+  const parts: Array<Record<string, unknown>> = [{ text }];
+  if (input.photo) {
+    const m = /^data:(image\/[a-z]+);base64,(.*)$/s.exec(input.photo);
+    if (m) parts.push({ inlineData: { mimeType: m[1], data: m[2] } });
+  }
+  const t1 = Date.now();
 
-  const result = streamText({
-    model: provider(MODEL),
-    system: input.language === "te" ? `${INSTRUCTIONS}\n\n${TELUGU_LETTER_INSTRUCTIONS}` : INSTRUCTIONS,
-    output: Output.object({ schema: aiSchema }),
-    messages: [{ role: "user", content }],
-    maxRetries: 0,
-    providerOptions: { google: { thinkingConfig: { thinkingLevel: "low" } } },
-  });
-  const raw = await result.output;
+  let res: Response;
+  try {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      signal: AbortSignal.timeout(45_000),
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: input.language === "te" ? `${INSTRUCTIONS}\n\n${TELUGU_LETTER_INSTRUCTIONS}` : INSTRUCTIONS }] },
+        contents: [{ role: "user", parts }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema,
+          thinkingConfig: { thinkingLevel: "minimal" },
+        },
+      }),
+    });
+  } catch (e) {
+    console.error(`[ai] request failed after ${Date.now() - t1}ms`, e);
+    throw new Error(e instanceof Error && /timeout|abort/i.test(e.name + e.message) ? "AI_TIMEOUT" : "AI_NETWORK");
+  }
+  const t2 = Date.now();
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`[ai] Gemini error ${res.status} after ${t2 - t1}ms: ${body.slice(0, 1000)}`);
+    throw new Error(`AI_HTTP_${res.status}`);
+  }
+  const json = (await res.json()) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> } }> };
+  const outText = json.candidates?.[0]?.content?.parts?.filter((p) => !p.thought).map((p) => p.text ?? "").join("") ?? "";
+  let raw: unknown;
+  try { raw = JSON.parse(outText); } catch { raw = null; }
   const parsed = aiSchema.safeParse(raw);
+  const t3 = Date.now();
+  console.log(`[ai] timings: prep=${t1 - t0}ms gemini=${t2 - t1}ms parse=${t3 - t2}ms total=${t3 - t0}ms photoBytes=${input.photo?.length ?? 0}`);
   if (!parsed.success) throw new Error("AI_INVALID_OUTPUT");
   const out = parsed.data;
   return {
