@@ -89,7 +89,7 @@ Today's date (use for the letter date, format DD/MM/YYYY): ${today}`;
         generationConfig: {
           responseMimeType: "application/json",
           responseSchema,
-          thinkingConfig: { thinkingLevel: "minimal" },
+          thinkingConfig: { thinkingLevel: "low" },
         },
       }),
     });
