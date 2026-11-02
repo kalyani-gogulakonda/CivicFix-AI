@@ -5,6 +5,18 @@ import { createComplaint, uploadPhoto } from "@/lib/storage";
 import { CATEGORIES, LANGUAGES, categoryLabel, hasPlaceholders, placeholderBlockMessage, type AiResult, type Category, type Language, type Status } from "@/lib/complaint-types";
 import { AiLabel, Badge, Btn, Card, fieldCls } from "./ui";
 
+// Resize to max 1024 px and compress to JPEG before sending to the AI.
+async function shrinkPhoto(f: File): Promise<string> {
+  const bmp = await createImageBitmap(f);
+  const scale = Math.min(1, 1024 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(bmp.width * scale);
+  c.height = Math.round(bmp.height * scale);
+  c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
+  bmp.close();
+  return c.toDataURL("image/jpeg", 0.8);
+}
+
 const urgencyTone = { low: "gray", medium: "amber", high: "red" } as const;
 type FieldErr = Partial<Record<"category" | "location" | "description" | "photo", string>>;
 
@@ -76,9 +88,11 @@ export function ReportFlow({ onSaved, onCancel }: { onSaved: (status: Status) =>
     if (!/^image\/(png|jpe?g|webp|gif)$/.test(f.type)) return setErrors((x) => ({ ...x, photo: "Please use a JPG, PNG, WebP or GIF image." }));
     setErrors((x) => ({ ...x, photo: "" }));
     setPhotoFile(f);
-    const r = new FileReader();
-    r.onload = () => setPhoto(r.result as string);
-    r.readAsDataURL(f);
+    shrinkPhoto(f).then(setPhoto).catch(() => {
+      const r = new FileReader();
+      r.onload = () => setPhoto(r.result as string);
+      r.readAsDataURL(f);
+    });
   }
 
   async function save(status: Status) {
